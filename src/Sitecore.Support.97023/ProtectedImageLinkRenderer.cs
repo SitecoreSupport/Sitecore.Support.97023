@@ -8,6 +8,7 @@
   using Diagnostics;
   using System.Text;
   using Configuration;
+  using Sitecore.StringExtensions;
 
   public class ProtectedImageLinkRenderer : Sitecore.Pipelines.RenderField.ProtectedImageLinkRenderer
   {
@@ -35,7 +36,7 @@
         {
           break;
         }
-        flag = base.CheckReferenceForParams(renderedText, tagStartIndex);
+        flag = base.CheckReferenceForParams(renderedText, tagStartIndex, "img", "src");
         startIndex = renderedText.IndexOf(">", tagStartIndex, StringComparison.OrdinalIgnoreCase) + 1;
       }
       if (!flag)
@@ -64,15 +65,28 @@
       return builder.ToString();
     }
 
+
     public new void Process(RenderFieldArgs args)
     {
       Assert.ArgumentNotNull(args, "args");
-      if (Settings.Media.RequestProtection.Enabled && !args.FieldTypeKey.StartsWith("__"))
+      try
       {
-        args.Result.FirstPart = this.HashImageReferences(args.Result.FirstPart);
-        args.Result.LastPart = this.HashImageReferences(args.Result.LastPart);
+        if (this.ShouldProtectRequest(args))
+        {
+          string str = this.HashImageReferences(args.Result.FirstPart);
+          string str2 = this.HashImageReferences(args.Result.LastPart);
+          args.Result.FirstPart = str;
+          args.Result.LastPart = str2;
+        }
+      }
+      catch (Exception exception)
+      {
+        object[] parameters = new object[] { args.FieldName };
+        this.Log.Warn("MediaRequestProtection: Could not process {0}".FormatWith(parameters), exception, this);
       }
     }
+
+
 
     private string ReplaceReference(string imgTag)
     {
@@ -90,6 +104,10 @@
       int startIndex = str.IndexOf("src", StringComparison.OrdinalIgnoreCase) + 3;
       startIndex = str.IndexOfAny(this.quotes, startIndex) + 1;
       int num2 = str.IndexOfAny(this.quotes, startIndex);
+      if (num2 <= startIndex)
+      {
+        return imgTag;
+      }
       string url = str.Substring(startIndex, num2 - startIndex);
       if (!url.Contains("?"))
       {
