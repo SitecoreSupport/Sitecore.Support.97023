@@ -58,7 +58,6 @@
     <Content Include="App_Config\Include\zzz\Sitecore.Support.97023.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App_Config\Include\packages.config" />
     <Content Include="packages.config" />
     <None Include="web.config" />
   </ItemGroup>
